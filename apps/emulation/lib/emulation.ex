@@ -100,7 +100,7 @@ defmodule Emulation do
   """
   @spec spawn(
           atom(),
-          (() -> any())
+          (-> any())
         ) :: pid()
   def spawn(name, f) do
     ComBase.spawn(get_context(), name, f)

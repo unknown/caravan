@@ -8,7 +8,7 @@ defmodule CaravanTest do
     nodes = [:a, :b, :c]
     config = Caravan.new_configuration(nodes)
 
-    server = Emulation.spawn(:server, fn -> Caravan.run(config) end)
+    Emulation.spawn(:server, fn -> Caravan.run(config) end)
 
     nodes
     |> Enum.map(fn x ->
