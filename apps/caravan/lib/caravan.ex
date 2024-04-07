@@ -1,4 +1,8 @@
 defmodule Caravan do
+  import Emulation, only: [send: 2 ]
+
+  import Kernel, except: [ send: 2]
+
   alias __MODULE__
 
   defstruct(
@@ -24,7 +28,7 @@ defmodule Caravan do
 
     {worker, response} =
       receive do
-        {worker, response} -> {worker, response}
+        {worker, response=%Caravan.ScheduleResponse{}} -> {worker, response}
       end
 
     IO.puts("Worker #{worker} is responded to work request")
@@ -40,8 +44,10 @@ defmodule Caravan do
 
   def run(state = %Caravan{}) do
     receive do
+      # ignore late schedule responses
+      {_, %Caravan.ScheduleResponse{}} -> state
+
       {client, msg} ->
-        IO.puts("Server received message #{msg}")
         run(handle_client_command(state, client, msg))
     end
   end

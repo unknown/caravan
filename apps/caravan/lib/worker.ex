@@ -1,4 +1,8 @@
 defmodule Caravan.Worker do
+  import Emulation, only: [send: 2 ]
+
+  import Kernel, except: [ send: 2]
+
   alias __MODULE__
 
   defstruct(id: nil)
