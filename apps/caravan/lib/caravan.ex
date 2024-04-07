@@ -17,17 +17,22 @@ defmodule Caravan do
     %Caravan{workers: workers}
   end
 
+  @spec broadcast_to_workers(%Caravan{workers: list()}, any()) :: list()
   defp broadcast_to_workers(%Caravan{workers: workers}, msg) do
     workers
     |> Enum.map(fn pid -> send(pid, msg) end)
   end
 
+  @spec broadcast_to_workers_except(%Caravan{workers: list()}, atom(), any()) :: list()
   defp broadcast_to_workers_except(%Caravan{workers: workers}, worker, msg) do
     workers
     |> Enum.filter(fn pid -> pid != worker end)
     |> Enum.map(fn pid -> send(pid, msg) end)
   end
 
+  @spec handle_client_command(%Caravan{cmd_seq: non_neg_integer()}, atom(), any()) :: %Caravan{
+          cmd_seq: non_neg_integer()
+        }
   defp handle_client_command(state = %Caravan{cmd_seq: id}, client, cmd) do
     requirements = Caravan.Requirements.new(200)
     schedule_request = Caravan.ScheduleRequest.new(id, cmd, requirements)
@@ -60,6 +65,7 @@ defmodule Caravan do
     %{state | cmd_seq: id + 1}
   end
 
+  @spec run(%Caravan{cmd_seq: non_neg_integer()}) :: no_return()
   def run(state = %Caravan{cmd_seq: id}) do
     receive do
       # ignore late schedule responses
