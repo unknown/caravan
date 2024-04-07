@@ -17,8 +17,8 @@ defmodule Caravan.ScheduleRequest do
 
   defstruct(id: nil, task: nil, requirements: nil)
 
-  @spec new(atom(), atom(), %Caravan.Requirements{}) :: %ScheduleRequest{
-          id: atom(),
+  @spec new(non_neg_integer(), atom(), %Caravan.Requirements{}) :: %ScheduleRequest{
+          id: non_neg_integer(),
           task: atom(),
           requirements: %Caravan.Requirements{}
         }
@@ -30,43 +30,46 @@ end
 defmodule Caravan.ScheduleResponse do
   alias __MODULE__
 
-  defstruct(worker_id: nil)
+  defstruct(id: nil)
 
-  @spec new(atom()) :: %ScheduleResponse{worker_id: atom()}
-  def new(worker_id) do
-    %ScheduleResponse{worker_id: worker_id}
+  @spec new(non_neg_integer()) :: %ScheduleResponse{id: non_neg_integer()}
+  def new(id) do
+    %ScheduleResponse{id: id}
   end
 end
 
 defmodule Caravan.ReleaseRequest do
   alias __MODULE__
 
-  defstruct(id: nil, reserved: nil)
+  defstruct(id: nil)
 
-  @spec new(atom(), atom()) :: %ReleaseRequest{id: atom(), reserved: atom()}
-  def new(id, reserved) do
-    %ReleaseRequest{id: id, reserved: reserved}
+  @spec new(non_neg_integer()) :: %ReleaseRequest{id: non_neg_integer()}
+  def new(id) do
+    %ReleaseRequest{id: id}
   end
 end
 
 defmodule Caravan.ReserveRequest do
   alias __MODULE__
 
-  defstruct(task: nil)
+  defstruct(id: nil, task: nil)
 
-  @spec new(atom()) :: %ReserveRequest{task: atom()}
-  def new(task) do
-    %ReserveRequest{task: task}
+  @spec new(non_neg_integer(), atom()) :: %ReserveRequest{id: non_neg_integer(), task: atom()}
+  def new(id, task) do
+    %ReserveRequest{id: id, task: task}
   end
 end
 
 defmodule Caravan.ReserveResponse do
   alias __MODULE__
 
-  defstruct(error: nil)
+  defstruct(id: nil, error: nil)
 
-  @spec new(atom() | nil) :: %ReserveResponse{error: atom() | nil}
-  def new(error) do
-    %ReserveResponse{error: error}
+  @spec new(non_neg_integer(), atom() | nil) :: %ReserveResponse{
+          id: non_neg_integer(),
+          error: atom() | nil
+        }
+  def new(id, error) do
+    %ReserveResponse{id: id, error: error}
   end
 end

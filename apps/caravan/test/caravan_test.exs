@@ -13,21 +13,38 @@ defmodule CaravanTest do
     nodes
     |> Enum.map(fn x ->
       Emulation.spawn(x, fn ->
-        config = Caravan.Worker.new(x)
+        config = Caravan.Worker.new()
         Caravan.Worker.run(config)
       end)
     end)
 
     client =
       Emulation.spawn(:client, fn ->
-        IO.puts("Sending server a test message")
-        Emulation.send(:server, :test)
+        Emulation.send(:server, :test1)
+        Emulation.send(:server, :test2)
+        Emulation.send(:server, :test3)
+
+        receive do
+          {:server, response} -> IO.inspect(response)
+        end
+
+        receive do
+          {:server, response} -> IO.inspect(response)
+        end
+
+        receive do
+          {:server, response} -> IO.inspect(response)
+        end
       end)
 
+    handle = Process.monitor(client)
+
     receive do
-      _ -> true
+      {:DOWN, ^handle, _, _, _} -> true
     after
       5_000 -> assert false
     end
+  after
+    Emulation.terminate()
   end
 end
