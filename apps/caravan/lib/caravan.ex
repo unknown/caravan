@@ -73,11 +73,11 @@ defmodule Caravan do
     receive do
       # ignore late schedule responses
       {_, %Caravan.ScheduleResponse{id: response_id}} when response_id != id ->
-        state
+        run(state)
 
       # ignore late reserve responses
       {_, %Caravan.ReserveResponse{id: response_id}} when response_id != id ->
-        state
+        run(state)
 
       {client, %Caravan.Task{task: task, payload: payload}} ->
         run(handle_client_command(state, client, task, payload))
