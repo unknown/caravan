@@ -1,5 +1,5 @@
 defmodule Caravan.Worker do
-  import Emulation, only: [send: 2]
+  import Emulation, only: [send: 2, whoami: 0]
 
   import Kernel, except: [send: 2]
 
@@ -12,11 +12,13 @@ defmodule Caravan.Worker do
     %Worker{available: true}
   end
 
-  @spec handle_schedule_request(%Worker{available: boolean()}, non_neg_integer(), atom()) ::
+  @spec handle_schedule_request(%Worker{available: boolean()}, atom(), non_neg_integer()) ::
           %Worker{
             available: boolean()
           }
-  def handle_schedule_request(state = %Worker{available: available}, id, server) do
+  def handle_schedule_request(state = %Worker{available: available}, server, id) do
+    IO.puts("Worker #{whoami()} received schedule request #{id}")
+
     if available do
       response = Caravan.ScheduleResponse.new(id)
       send(server, response)
@@ -28,14 +30,23 @@ defmodule Caravan.Worker do
 
   @spec handle_release_request(%Worker{}) :: %Worker{available: true}
   def handle_release_request(state = %Worker{}) do
+    IO.puts("Worker #{whoami()} received release request")
     %{state | available: true}
   end
 
-  @spec handle_reserve_request(%Worker{}, non_neg_integer(), atom(), atom()) :: %Worker{
+  @spec handle_reserve_request(%Worker{}, atom(), non_neg_integer(), atom(), any()) :: %Worker{
           available: true
         }
-  def handle_reserve_request(state = %Worker{}, id, _task, server) do
-    response = Caravan.ReserveResponse.new(id, nil)
+  def handle_reserve_request(state = %Worker{}, server, id, task, payload) do
+    IO.puts("Worker #{whoami()} received reserve request #{id}")
+
+    {error, result} =
+      case task do
+        :double -> {nil, payload * 2}
+        _ -> {"Unimplemented task", nil}
+      end
+
+    response = Caravan.ReserveResponse.new(id, error, result)
     send(server, response)
     %{state | available: true}
   end
@@ -44,13 +55,13 @@ defmodule Caravan.Worker do
   def run(state = %Worker{}) do
     receive do
       {server, %Caravan.ScheduleRequest{id: id}} ->
-        run(handle_schedule_request(state, id, server))
+        run(handle_schedule_request(state, server, id))
 
       {_server, %Caravan.ReleaseRequest{}} ->
         run(handle_release_request(state))
 
-      {server, %Caravan.ReserveRequest{id: id, task: task}} ->
-        run(handle_reserve_request(state, id, task, server))
+      {server, %Caravan.ReserveRequest{id: id, task: task, payload: payload}} ->
+        run(handle_reserve_request(state, server, id, task, payload))
     end
   end
 end

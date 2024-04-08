@@ -52,24 +52,40 @@ end
 defmodule Caravan.ReserveRequest do
   alias __MODULE__
 
-  defstruct(id: nil, task: nil)
+  defstruct(id: nil, task: nil, payload: nil)
 
-  @spec new(non_neg_integer(), atom()) :: %ReserveRequest{id: non_neg_integer(), task: atom()}
-  def new(id, task) do
-    %ReserveRequest{id: id, task: task}
+  @spec new(non_neg_integer(), atom(), any()) :: %ReserveRequest{
+          id: non_neg_integer(),
+          task: atom(),
+          payload: any()
+        }
+  def new(id, task, payload) do
+    %ReserveRequest{id: id, task: task, payload: payload}
   end
 end
 
 defmodule Caravan.ReserveResponse do
   alias __MODULE__
 
-  defstruct(id: nil, error: nil)
+  defstruct(id: nil, error: nil, payload: nil)
 
-  @spec new(non_neg_integer(), atom() | nil) :: %ReserveResponse{
+  @spec new(non_neg_integer(), atom() | nil, any()) :: %ReserveResponse{
           id: non_neg_integer(),
-          error: atom() | nil
+          error: atom() | nil,
+          payload: any()
         }
-  def new(id, error) do
-    %ReserveResponse{id: id, error: error}
+  def new(id, error, payload) do
+    %ReserveResponse{id: id, error: error, payload: payload}
+  end
+end
+
+defmodule Caravan.Task do
+  alias __MODULE__
+
+  defstruct(task: nil, payload: nil)
+
+  @spec new(atom(), any()) :: %Task{task: atom(), payload: any()}
+  def new(task, payload) do
+    %Task{task: task, payload: payload}
   end
 end

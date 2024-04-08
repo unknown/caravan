@@ -30,15 +30,16 @@ defmodule Caravan do
     |> Enum.map(fn pid -> send(pid, msg) end)
   end
 
-  @spec handle_client_command(%Caravan{cmd_seq: non_neg_integer()}, atom(), any()) :: %Caravan{
-          cmd_seq: non_neg_integer()
-        }
-  defp handle_client_command(state = %Caravan{cmd_seq: id}, client, cmd) do
-    requirements = Caravan.Requirements.new(200)
-    schedule_request = Caravan.ScheduleRequest.new(id, cmd, requirements)
-    broadcast_to_workers(state, schedule_request)
+  @spec handle_client_command(%Caravan{cmd_seq: non_neg_integer()}, atom(), atom(), any()) ::
+          %Caravan{
+            cmd_seq: non_neg_integer()
+          }
+  defp handle_client_command(state = %Caravan{cmd_seq: id}, client, task, payload) do
+    IO.puts("Client #{client} sent command #{id}")
 
-    IO.puts("Broadcasting work request #{id}")
+    requirements = Caravan.Requirements.new(200)
+    schedule_request = Caravan.ScheduleRequest.new(id, task, requirements)
+    broadcast_to_workers(state, schedule_request)
 
     worker =
       receive do
@@ -51,7 +52,7 @@ defmodule Caravan do
     release_request = Caravan.ReleaseRequest.new(id)
     broadcast_to_workers_except(state, worker, release_request)
 
-    reserve_request = Caravan.ReserveRequest.new(id, cmd)
+    reserve_request = Caravan.ReserveRequest.new(id, task, payload)
     send(worker, reserve_request)
 
     response =
@@ -59,6 +60,8 @@ defmodule Caravan do
         {w, response = %Caravan.ReserveResponse{}} when w == worker and response.id == id ->
           response
       end
+
+    IO.puts("Worker #{worker} responded to reserve request #{id}")
 
     send(client, response)
 
@@ -76,8 +79,11 @@ defmodule Caravan do
       {_, %Caravan.ReserveResponse{id: response_id}} when response_id != id ->
         state
 
-      {client, msg} ->
-        run(handle_client_command(state, client, msg))
+      {client, %Caravan.Task{task: task, payload: payload}} ->
+        run(handle_client_command(state, client, task, payload))
+
+      {_, _} ->
+        IO.puts("Unhandled message")
     end
   end
 end

@@ -20,9 +20,9 @@ defmodule CaravanTest do
 
     client =
       Emulation.spawn(:client, fn ->
-        Emulation.send(:server, :test1)
-        Emulation.send(:server, :test2)
-        Emulation.send(:server, :test3)
+        Emulation.send(:server, Caravan.Task.new(:double, 2))
+        Emulation.send(:server, Caravan.Task.new(:double, 3))
+        Emulation.send(:server, Caravan.Task.new(:double, 4))
 
         receive do
           {:server, response} -> IO.inspect(response)
