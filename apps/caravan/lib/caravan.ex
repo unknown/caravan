@@ -52,32 +52,27 @@ defmodule Caravan do
     release_request = Caravan.ReleaseRequest.new(id)
     broadcast_to_workers_except(state, worker, release_request)
 
-    reserve_request = Caravan.ReserveRequest.new(id, task, payload)
+    reserve_request = Caravan.ReserveRequest.new(id, client, task, payload)
     send(worker, reserve_request)
 
-    response =
-      receive do
-        {w, response = %Caravan.ReserveResponse{}} when w == worker and response.id == id ->
-          response
-      end
-
-    IO.puts("Worker #{worker} responded to reserve request #{id}")
-
-    send(client, response)
-
     %{state | cmd_seq: id + 1}
+  end
+
+  @spec handle_reserve_response(%Caravan{}, atom(), atom() | nil, any()) :: %Caravan{}
+  defp handle_reserve_response(state, client, error, payload) do
+    send(client, {error, payload})
+    state
   end
 
   @spec run(%Caravan{cmd_seq: non_neg_integer()}) :: no_return()
   def run(state = %Caravan{cmd_seq: id}) do
     receive do
       # ignore late schedule responses
-      {_, %Caravan.ScheduleResponse{id: response_id}} when response_id != id ->
+      {_worker, %Caravan.ScheduleResponse{id: response_id}} when response_id != id ->
         run(state)
 
-      # ignore late reserve responses
-      {_, %Caravan.ReserveResponse{id: response_id}} when response_id != id ->
-        run(state)
+      {_worker, %Caravan.ReserveResponse{client: client, error: error, payload: payload}} ->
+        run(handle_reserve_response(state, client, error, payload))
 
       {client, %Caravan.Task{task: task, payload: payload}} ->
         run(handle_client_command(state, client, task, payload))

@@ -34,10 +34,11 @@ defmodule Caravan.Worker do
     %{state | available: true}
   end
 
-  @spec handle_reserve_request(%Worker{}, atom(), non_neg_integer(), atom(), any()) :: %Worker{
-          available: true
-        }
-  def handle_reserve_request(state = %Worker{}, server, id, task, payload) do
+  @spec handle_reserve_request(%Worker{}, atom(), non_neg_integer(), atom(), atom(), any()) ::
+          %Worker{
+            available: true
+          }
+  def handle_reserve_request(state = %Worker{}, server, id, client, task, payload) do
     IO.puts("Worker #{whoami()} received reserve request #{id}")
 
     {error, result} =
@@ -46,7 +47,7 @@ defmodule Caravan.Worker do
         _ -> {"Unimplemented task", nil}
       end
 
-    response = Caravan.ReserveResponse.new(id, error, result)
+    response = Caravan.ReserveResponse.new(id, client, error, result)
     send(server, response)
     %{state | available: true}
   end
@@ -60,8 +61,8 @@ defmodule Caravan.Worker do
       {_server, %Caravan.ReleaseRequest{}} ->
         run(handle_release_request(state))
 
-      {server, %Caravan.ReserveRequest{id: id, task: task, payload: payload}} ->
-        run(handle_reserve_request(state, server, id, task, payload))
+      {server, %Caravan.ReserveRequest{id: id, client: client, task: task, payload: payload}} ->
+        run(handle_reserve_request(state, server, id, client, task, payload))
     end
   end
 end
