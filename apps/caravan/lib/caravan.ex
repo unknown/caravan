@@ -3,6 +3,8 @@ defmodule Caravan do
 
   import Kernel, except: [send: 2]
 
+  require Logger
+
   alias __MODULE__
 
   defstruct(
@@ -35,7 +37,7 @@ defmodule Caravan do
             cmd_seq: non_neg_integer()
           }
   defp handle_client_command(state = %Caravan{cmd_seq: id}, client, task, payload) do
-    IO.puts("Client #{client} sent command #{id}")
+    Logger.debug("Client #{client} sent command #{id}")
 
     requirements = Caravan.Requirements.new(200)
     schedule_request = Caravan.ScheduleRequest.new(id, task, requirements)
@@ -47,7 +49,7 @@ defmodule Caravan do
           worker
       end
 
-    IO.puts("Worker #{worker} responded to work request #{id}")
+    Logger.debug("Worker #{worker} responded to work request #{id}")
 
     release_request = Caravan.ReleaseRequest.new(id)
     broadcast_to_workers_except(state, worker, release_request)
@@ -78,7 +80,8 @@ defmodule Caravan do
         run(handle_client_command(state, client, task, payload))
 
       {_, _} ->
-        IO.puts("Unhandled message")
+        Logger.error("Unhandled message")
+        run(state)
     end
   end
 end

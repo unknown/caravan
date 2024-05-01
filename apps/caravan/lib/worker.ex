@@ -3,6 +3,8 @@ defmodule Caravan.Worker do
 
   import Kernel, except: [send: 2]
 
+  require Logger
+
   alias __MODULE__
 
   defstruct(available: true)
@@ -17,7 +19,7 @@ defmodule Caravan.Worker do
             available: boolean()
           }
   def handle_schedule_request(state = %Worker{available: available}, server, id) do
-    IO.puts("Worker #{whoami()} received schedule request #{id}")
+    Logger.debug("Worker #{whoami()} received schedule request #{id}")
 
     if available do
       response = Caravan.ScheduleResponse.new(id)
@@ -30,7 +32,7 @@ defmodule Caravan.Worker do
 
   @spec handle_release_request(%Worker{}) :: %Worker{available: true}
   def handle_release_request(state = %Worker{}) do
-    IO.puts("Worker #{whoami()} received release request")
+    Logger.debug("Worker #{whoami()} received release request")
     %{state | available: true}
   end
 
@@ -39,7 +41,7 @@ defmodule Caravan.Worker do
             available: true
           }
   def handle_reserve_request(state = %Worker{}, server, id, client, task, payload) do
-    IO.puts("Worker #{whoami()} received reserve request #{id}")
+    Logger.debug("Worker #{whoami()} received reserve request #{id}")
 
     {error, result} =
       case task do
