@@ -46,16 +46,21 @@ defmodule Caravan do
     worker =
       receive do
         {worker, response = %Caravan.ScheduleResponse{}} when response.id == id ->
+          release_request = Caravan.ReleaseRequest.new(id)
+          broadcast_to_workers_except(state, worker, release_request)
           worker
+      after
+        1_000 -> nil
       end
 
-    Logger.debug("Worker #{worker} responded to work request #{id}")
-
-    release_request = Caravan.ReleaseRequest.new(id)
-    broadcast_to_workers_except(state, worker, release_request)
-
-    reserve_request = Caravan.ReserveRequest.new(id, client, task, payload)
-    send(worker, reserve_request)
+    if worker do
+      Logger.debug("Worker #{worker} responded to work request #{id}")
+      reserve_request = Caravan.ReserveRequest.new(id, client, task, payload)
+      send(worker, reserve_request)
+    else
+      Logger.warning("No worker responded to work request #{id} within timeout")
+      send(client, {:error, :no_worker_available})
+    end
 
     %{state | cmd_seq: id + 1}
   end
