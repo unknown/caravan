@@ -10,6 +10,8 @@ defmodule Caravan do
   defstruct(
     # configuration: workers
     workers: [],
+    # next worker index for round robin scheduling
+    worker_index: 0,
     # next command id
     cmd_seq: 1
   )
@@ -20,9 +22,8 @@ defmodule Caravan do
   end
 
   @spec broadcast_to_worker(%Caravan{workers: list()}, any()) :: boolean
-  defp broadcast_to_worker(%Caravan{workers: workers}, msg) do
-    # TODO: round robin the selected worker
-    worker = hd(workers)
+  defp broadcast_to_worker(%Caravan{workers: workers, worker_index: worker_index}, msg) do
+    worker = Enum.at(workers, worker_index)
     send(worker, msg)
   end
 
@@ -30,13 +31,18 @@ defmodule Caravan do
           %Caravan{
             cmd_seq: non_neg_integer()
           }
-  defp handle_client_command(state = %Caravan{cmd_seq: id}, client, task) do
+  defp handle_client_command(
+         state = %Caravan{workers: workers, worker_index: worker_index, cmd_seq: id},
+         client,
+         task
+       ) do
     Logger.notice("Client #{client} sent command #{id}")
 
     reserve_request = Caravan.ReserveRequest.new(client, task)
     broadcast_to_worker(state, reserve_request)
+    next_worker_index = rem(worker_index + 1, length(workers))
 
-    %{state | cmd_seq: id + 1}
+    %{state | worker_index: next_worker_index, cmd_seq: id + 1}
   end
 
   @spec handle_reserve_response(%Caravan{}, %Caravan.ReserveResponse{}) :: %Caravan{}
