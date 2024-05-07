@@ -32,11 +32,11 @@ defmodule Caravan do
     |> Enum.map(fn pid -> send(pid, msg) end)
   end
 
-  @spec handle_client_command(%Caravan{cmd_seq: non_neg_integer()}, atom(), atom(), any()) ::
+  @spec handle_client_command(%Caravan{cmd_seq: non_neg_integer()}, atom(), %Caravan.Task{}) ::
           %Caravan{
             cmd_seq: non_neg_integer()
           }
-  defp handle_client_command(state = %Caravan{cmd_seq: id}, client, task, payload) do
+  defp handle_client_command(state = %Caravan{cmd_seq: id}, client, task) do
     Logger.debug("Client #{client} sent command #{id}")
 
     requirements = Caravan.Requirements.new(200)
@@ -55,7 +55,7 @@ defmodule Caravan do
 
     if worker do
       Logger.debug("Worker #{worker} responded to work request #{id}")
-      reserve_request = Caravan.ReserveRequest.new(id, client, task, payload)
+      reserve_request = Caravan.ReserveRequest.new(id, client, task)
       send(worker, reserve_request)
     else
       Logger.warning("No worker responded to work request #{id} within timeout")
@@ -65,8 +65,12 @@ defmodule Caravan do
     %{state | cmd_seq: id + 1}
   end
 
-  @spec handle_reserve_response(%Caravan{}, atom(), atom() | nil, any()) :: %Caravan{}
-  defp handle_reserve_response(state, client, error, payload) do
+  @spec handle_reserve_response(%Caravan{}, %Caravan.ReserveResponse{}) :: %Caravan{}
+  defp handle_reserve_response(state, %Caravan.ReserveResponse{
+         client: client,
+         error: error,
+         payload: payload
+       }) do
     send(client, {error, payload})
     state
   end
@@ -78,11 +82,11 @@ defmodule Caravan do
       {_worker, %Caravan.ScheduleResponse{id: response_id}} when response_id != id ->
         run(state)
 
-      {_worker, %Caravan.ReserveResponse{client: client, error: error, payload: payload}} ->
-        run(handle_reserve_response(state, client, error, payload))
+      {_worker, reserve_response = %Caravan.ReserveResponse{}} ->
+        run(handle_reserve_response(state, reserve_response))
 
-      {client, %Caravan.Task{task: task, payload: payload}} ->
-        run(handle_client_command(state, client, task, payload))
+      {client, task = %Caravan.Task{}} ->
+        run(handle_client_command(state, client, task))
 
       {_, _} ->
         Logger.error("Unhandled message")
