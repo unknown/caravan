@@ -9,57 +9,6 @@ defmodule Caravan.Task do
   end
 end
 
-defmodule Caravan.Requirements do
-  alias __MODULE__
-
-  defstruct(points: nil)
-
-  @spec new(non_neg_integer()) :: %Requirements{points: non_neg_integer()}
-  def new(
-        # fake resource
-        points
-      ) do
-    %Requirements{points: points}
-  end
-end
-
-defmodule Caravan.ScheduleRequest do
-  alias __MODULE__
-
-  defstruct(id: nil, task: nil, requirements: nil)
-
-  @spec new(non_neg_integer(), %Caravan.Task{}, %Caravan.Requirements{}) :: %ScheduleRequest{
-          id: non_neg_integer(),
-          task: %Caravan.Task{},
-          requirements: %Caravan.Requirements{}
-        }
-  def new(id, task, requirements) do
-    %ScheduleRequest{id: id, task: task, requirements: requirements}
-  end
-end
-
-defmodule Caravan.ScheduleResponse do
-  alias __MODULE__
-
-  defstruct(id: nil)
-
-  @spec new(non_neg_integer()) :: %ScheduleResponse{id: non_neg_integer()}
-  def new(id) do
-    %ScheduleResponse{id: id}
-  end
-end
-
-defmodule Caravan.ReleaseRequest do
-  alias __MODULE__
-
-  defstruct(id: nil)
-
-  @spec new(non_neg_integer()) :: %ReleaseRequest{id: non_neg_integer()}
-  def new(id) do
-    %ReleaseRequest{id: id}
-  end
-end
-
 defmodule Caravan.ReserveRequest do
   alias __MODULE__
 

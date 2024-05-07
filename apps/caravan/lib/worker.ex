@@ -7,72 +7,60 @@ defmodule Caravan.Worker do
 
   alias __MODULE__
 
-  defstruct(available: true)
+  defstruct(tasks: :queue.new())
 
-  @spec new() :: %Worker{available: boolean()}
+  @spec new() :: %Worker{tasks: :queue.queue()}
   def new() do
-    %Worker{available: true}
+    %Worker{tasks: :queue.new()}
   end
 
-  @spec handle_schedule_request(%Worker{available: boolean()}, atom(), %Caravan.ScheduleRequest{}) ::
-          %Worker{
-            available: boolean()
-          }
-  def handle_schedule_request(
-        state = %Worker{available: available},
-        server,
-        %Caravan.ScheduleRequest{id: id}
-      ) do
-    Logger.debug("Worker #{whoami()} received schedule request #{id}")
-
-    if available do
-      response = Caravan.ScheduleResponse.new(id)
-      send(server, response)
-      %{state | available: false}
-    else
-      state
-    end
-  end
-
-  @spec handle_release_request(%Worker{}) :: %Worker{available: true}
-  def handle_release_request(state = %Worker{}) do
-    Logger.debug("Worker #{whoami()} received release request")
-    %{state | available: true}
-  end
-
-  @spec handle_reserve_request(%Worker{}, atom(), %Caravan.ReserveRequest{}) ::
-          %Worker{
-            available: true
-          }
+  @spec handle_reserve_request(%Worker{}, atom(), %Caravan.ReserveRequest{}) :: %Worker{}
   def handle_reserve_request(
-        state = %Worker{},
+        state = %Worker{tasks: tasks},
         server,
-        %Caravan.ReserveRequest{id: id, client: client, task: task}
+        reserve_request = %Caravan.ReserveRequest{id: id}
       ) do
     Logger.debug("Worker #{whoami()} received reserve request #{id}")
 
-    {error, result} =
-      case task.task do
-        :double -> {nil, task.payload * 2}
-        _ -> {"Unimplemented task", nil}
-      end
+    send(whoami(), :work)
 
-    response = Caravan.ReserveResponse.new(id, client, error, result)
-    send(server, response)
-    %{state | available: true}
+    %{state | tasks: :queue.in({server, reserve_request}, tasks)}
+  end
+
+  @spec handle_work(%Worker{}) :: %Worker{}
+  def handle_work(state = %Worker{tasks: tasks}) do
+    {task, tasks} = :queue.out(tasks)
+
+    case task do
+      {:value, {server, %Caravan.ReserveRequest{id: id, client: client, task: task}}} ->
+        {error, result} = perform_task(task)
+        response = Caravan.ReserveResponse.new(id, client, error, result)
+        send(server, response)
+        nil
+
+      :empty ->
+        nil
+    end
+
+    %{state | tasks: tasks}
+  end
+
+  @spec perform_task(%Caravan.Task{}) :: {any(), nil} | {nil | any()}
+  def perform_task(%Caravan.Task{task: task, payload: payload}) do
+    case task do
+      :double -> {nil, payload * 2}
+      _ -> {"Unimplemented task", nil}
+    end
   end
 
   @spec run(%Worker{}) :: no_return()
   def run(state = %Worker{}) do
     receive do
-      {server, schedule_request = %Caravan.ScheduleRequest{}} ->
-        run(handle_schedule_request(state, server, schedule_request))
-
-      {_server, %Caravan.ReleaseRequest{}} ->
-        run(handle_release_request(state))
-
       {server, reserve_request = %Caravan.ReserveRequest{}} ->
         run(handle_reserve_request(state, server, reserve_request))
+
+      {_, :work} ->
+        run(handle_work(state))
     end
   end
 end
