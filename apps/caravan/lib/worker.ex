@@ -18,9 +18,9 @@ defmodule Caravan.Worker do
   def handle_reserve_request(
         state = %Worker{tasks: tasks},
         server,
-        reserve_request = %Caravan.ReserveRequest{id: id}
+        reserve_request = %Caravan.ReserveRequest{}
       ) do
-    Logger.debug("Worker #{whoami()} received reserve request #{id}")
+    Logger.debug("Worker #{whoami()} received task #{inspect(reserve_request.task)}")
 
     send(whoami(), :work)
 
@@ -32,9 +32,9 @@ defmodule Caravan.Worker do
     {task, tasks} = :queue.out(tasks)
 
     case task do
-      {:value, {server, %Caravan.ReserveRequest{id: id, client: client, task: task}}} ->
+      {:value, {server, %Caravan.ReserveRequest{client: client, task: task}}} ->
         {error, result} = perform_task(task)
-        response = Caravan.ReserveResponse.new(id, client, error, result)
+        response = Caravan.ReserveResponse.new(client, error, result)
         send(server, response)
         nil
 

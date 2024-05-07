@@ -31,9 +31,9 @@ defmodule Caravan do
             cmd_seq: non_neg_integer()
           }
   defp handle_client_command(state = %Caravan{cmd_seq: id}, client, task) do
-    Logger.debug("Client #{client} sent command #{id}")
+    Logger.notice("Client #{client} sent command #{id}")
 
-    reserve_request = Caravan.ReserveRequest.new(id, client, task)
+    reserve_request = Caravan.ReserveRequest.new(client, task)
     broadcast_to_worker(state, reserve_request)
 
     %{state | cmd_seq: id + 1}
