@@ -9,84 +9,28 @@ defmodule Caravan.Task do
   end
 end
 
-defmodule Caravan.Requirements do
-  alias __MODULE__
-
-  defstruct(points: nil)
-
-  @spec new(non_neg_integer()) :: %Requirements{points: non_neg_integer()}
-  def new(
-        # fake resource
-        points
-      ) do
-    %Requirements{points: points}
-  end
-end
-
-defmodule Caravan.ScheduleRequest do
-  alias __MODULE__
-
-  defstruct(id: nil, task: nil, requirements: nil)
-
-  @spec new(non_neg_integer(), %Caravan.Task{}, %Caravan.Requirements{}) :: %ScheduleRequest{
-          id: non_neg_integer(),
-          task: %Caravan.Task{},
-          requirements: %Caravan.Requirements{}
-        }
-  def new(id, task, requirements) do
-    %ScheduleRequest{id: id, task: task, requirements: requirements}
-  end
-end
-
-defmodule Caravan.ScheduleResponse do
-  alias __MODULE__
-
-  defstruct(id: nil)
-
-  @spec new(non_neg_integer()) :: %ScheduleResponse{id: non_neg_integer()}
-  def new(id) do
-    %ScheduleResponse{id: id}
-  end
-end
-
-defmodule Caravan.ReleaseRequest do
-  alias __MODULE__
-
-  defstruct(id: nil)
-
-  @spec new(non_neg_integer()) :: %ReleaseRequest{id: non_neg_integer()}
-  def new(id) do
-    %ReleaseRequest{id: id}
-  end
-end
-
 defmodule Caravan.ReserveRequest do
   alias __MODULE__
 
-  defstruct(id: nil, client: nil, task: nil)
+  defstruct(client: nil, task: nil)
 
-  @spec new(non_neg_integer(), atom(), %Caravan.Task{}) :: %ReserveRequest{
-          id: non_neg_integer(),
-          client: atom(),
-          task: %Caravan.Task{}
-        }
-  def new(id, client, task) do
-    %ReserveRequest{id: id, client: client, task: task}
+  @spec new(atom(), %Caravan.Task{}) :: %ReserveRequest{client: atom(), task: %Caravan.Task{}}
+  def new(client, task) do
+    %ReserveRequest{client: client, task: task}
   end
 end
 
 defmodule Caravan.ReserveResponse do
   alias __MODULE__
 
-  defstruct(id: nil, client: nil, error: nil, payload: nil)
+  defstruct(client: nil, error: nil, payload: nil)
 
-  @spec new(non_neg_integer(), atom(), atom() | nil, any()) :: %ReserveResponse{
-          id: non_neg_integer(),
+  @spec new(atom(), atom() | nil, any()) :: %ReserveResponse{
           client: atom(),
           error: atom() | nil,
           payload: any()
         }
-  def new(id, client, error, payload) do
-    %ReserveResponse{id: id, client: client, error: error, payload: payload}
+  def new(client, error, payload) do
+    %ReserveResponse{client: client, error: error, payload: payload}
   end
 end
