@@ -36,7 +36,7 @@ defmodule Caravan do
          client,
          task
        ) do
-    Logger.notice("Client #{client} sent command #{id}")
+    Logger.debug("Client #{client} sent command #{id}")
 
     reserve_request = Caravan.ReserveRequest.new(client, task)
     broadcast_to_worker(state, reserve_request)
