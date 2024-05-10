@@ -1,11 +1,16 @@
 defmodule Caravan do
   import Emulation, only: [send: 2]
-
   import Kernel, except: [send: 2]
 
   require Logger
 
   alias __MODULE__
+
+  @type t :: %Caravan{
+          workers: list(),
+          worker_index: non_neg_integer(),
+          cmd_seq: non_neg_integer()
+        }
 
   defstruct(
     # configuration: workers
@@ -16,21 +21,19 @@ defmodule Caravan do
     cmd_seq: 1
   )
 
-  @spec new_configuration(list()) :: %Caravan{workers: list()}
+  @spec new_configuration(list()) :: t()
   def new_configuration(workers) do
-    %Caravan{workers: workers}
+    %Caravan{workers: workers, worker_index: 0}
   end
 
-  @spec broadcast_to_worker(%Caravan{workers: list()}, any()) :: boolean
+  @spec broadcast_to_worker(t(), any()) :: boolean()
   defp broadcast_to_worker(%Caravan{workers: workers, worker_index: worker_index}, msg) do
-    worker = Enum.at(workers, worker_index)
-    send(worker, msg)
+    workers
+    |> Enum.at(worker_index)
+    |> send(msg)
   end
 
-  @spec handle_client_command(%Caravan{cmd_seq: non_neg_integer()}, atom(), %Caravan.Task{}) ::
-          %Caravan{
-            cmd_seq: non_neg_integer()
-          }
+  @spec handle_client_command(t(), atom(), Caravan.Task.t()) :: t()
   defp handle_client_command(
          state = %Caravan{workers: workers, worker_index: worker_index, cmd_seq: id},
          client,
@@ -45,7 +48,7 @@ defmodule Caravan do
     %{state | worker_index: next_worker_index, cmd_seq: id + 1}
   end
 
-  @spec handle_reserve_response(%Caravan{}, %Caravan.ReserveResponse{}) :: %Caravan{}
+  @spec handle_reserve_response(t(), Caravan.ReserveResponse.t()) :: t()
   defp handle_reserve_response(state, %Caravan.ReserveResponse{
          client: client,
          error: error,
@@ -55,11 +58,13 @@ defmodule Caravan do
     state
   end
 
-  @spec run(%Caravan{cmd_seq: non_neg_integer()}) :: no_return()
+  @spec run(t()) :: no_return()
   def run(state = %Caravan{}) do
     receive do
       {_worker, reserve_response = %Caravan.ReserveResponse{}} ->
-        run(handle_reserve_response(state, reserve_response))
+        state
+        |> handle_reserve_response(reserve_response)
+        |> run()
 
       {client, task = %Caravan.Task{}} ->
         run(handle_client_command(state, client, task))
